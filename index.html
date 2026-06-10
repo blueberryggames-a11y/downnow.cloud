@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.allorigins.win https://www.google-analytics.com https://analytics.google.com; img-src 'self' data: https://www.google-analytics.com; frame-src 'none'; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.allorigins.win https://www.google-analytics.com https://analytics.google.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://www.google-analytics.com https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self';" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>downnow.cloud — Executor Status</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -393,7 +393,7 @@
 <nav>
   <div class="nav-inner">
     <a class="logo" href="/">
-      <img class="logo-img" src="https://raw.githubusercontent.com/blueberryggames-a11y/downnow.cloud/refs/heads/main/whitelogo.ico" alt="downnow.cloud logo" />
+      <img class="logo-img" id="site-logo" src="" alt="downnow.cloud logo" />
       downnow.cloud
     </a>
     <div class="nav-links">
@@ -966,6 +966,21 @@ Document:  version
   }
 
   init().catch(console.error);
+</script>
+
+<script>
+  // whitelogo.ico is actually a PNG — fetch it and create a blob URL with the correct MIME type
+  fetch('https://cdn.jsdelivr.net/gh/blueberryggames-a11y/downnow.cloud@main/whitelogo.ico')
+    .then(r => r.blob())
+    .then(blob => {
+      const png = new Blob([blob], { type: 'image/png' });
+      document.getElementById('site-logo').src = URL.createObjectURL(png);
+    })
+    .catch(() => {
+      // fallback: try direct URL anyway
+      document.getElementById('site-logo').src =
+        'https://cdn.jsdelivr.net/gh/blueberryggames-a11y/downnow.cloud@main/whitelogo.ico';
+    });
 </script>
 </body>
 </html>
