@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.allorigins.win https://www.google-analytics.com https://analytics.google.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://www.google-analytics.com https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.allorigins.win https://www.google-analytics.com https://analytics.google.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://www.google-analytics.com https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self';" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>downnow.cloud — Executor Status</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
   <style>
+    .ti { font-size: 14px; line-height: 1; vertical-align: -2px; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -876,9 +878,9 @@ Document:  version
     display.forEach(m => {
       const isActive    = !m.resolved;
       const chipClass   = isActive ? 'chip-purple' : 'chip-green';
-      const chipLabel   = m.status === 'completed' ? '✅ Completed'
-                        : m.status === 'in-progress' ? '🔧 In Progress'
-                        : '🕐 Scheduled';
+      const chipLabel   = m.status === 'completed' ? '<i class="ti ti-circle-check" aria-hidden="true"></i> Completed'
+                        : m.status === 'in-progress' ? '<i class="ti ti-tool" aria-hidden="true"></i> In Progress'
+                        : '<i class="ti ti-clock" aria-hidden="true"></i> Scheduled';
       const startStr    = m.scheduledStart || '—';
       const endStr      = m.scheduledEnd   || '—';
       const affectedStr = Array.isArray(m.affected) ? m.affected.join(', ') : (m.affected || '—');
@@ -890,20 +892,20 @@ Document:  version
       const hdr = document.createElement('div');
       hdr.className = 'incident-header open';
       hdr.innerHTML = `
-        <div class="incident-title">🔧 ${m.title || 'Maintenance'}</div>
+        <div class="incident-title"><i class="ti ti-tool" aria-hidden="true" style="margin-right:6px;color:var(--purple);"></i>${m.title || 'Maintenance'}</div>
         <div class="status-chip ${chipClass}" style="font-size:11px;padding:2px 9px;">${chipLabel}</div>`;
 
       const body = document.createElement('div');
       body.style.padding = '0 20px 14px';
 
       body.innerHTML = `
-        <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8;">
-          <div><span style="color:var(--dim);font-weight:600;">Description: </span>${m.description || '—'}</div>
-          <div><span style="color:var(--dim);font-weight:600;">Affected: </span>${affectedStr}</div>
-          <div><span style="color:var(--dim);font-weight:600;">Window: </span>${startStr} → ${endStr}</div>
-          <div><span style="color:var(--dim);font-weight:600;">Scheduled by: </span>${m.createdBy || '—'}</div>
-          ${m.resolved && m.resolvedAt ? `<div><span style="color:var(--dim);font-weight:600;">Completed at: </span>${new Date(m.resolvedAt).toLocaleString()}</div>` : ''}
-          <div style="margin-top:4px;font-size:10px;color:var(--dim);">ID: ${m.id || '—'}</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:2;">
+          <div><i class="ti ti-align-left" aria-hidden="true" style="margin-right:6px;color:var(--dim);"></i><span style="color:var(--dim);font-weight:600;">Description: </span>${m.description || '—'}</div>
+          <div><i class="ti ti-apps" aria-hidden="true" style="margin-right:6px;color:var(--dim);"></i><span style="color:var(--dim);font-weight:600;">Affected: </span>${affectedStr}</div>
+          <div><i class="ti ti-calendar-time" aria-hidden="true" style="margin-right:6px;color:var(--dim);"></i><span style="color:var(--dim);font-weight:600;">Window: </span>${startStr} <i class="ti ti-arrow-right" aria-hidden="true" style="font-size:11px;color:var(--dim);"></i> ${endStr}</div>
+          <div><i class="ti ti-user" aria-hidden="true" style="margin-right:6px;color:var(--dim);"></i><span style="color:var(--dim);font-weight:600;">Scheduled by: </span>${m.createdBy || '—'}</div>
+          ${m.resolved && m.resolvedAt ? `<div><i class="ti ti-circle-check" aria-hidden="true" style="margin-right:6px;color:var(--green);"></i><span style="color:var(--dim);font-weight:600;">Completed at: </span>${new Date(m.resolvedAt).toLocaleString()}</div>` : ''}
+          <div style="margin-top:4px;font-size:10px;color:var(--dim);"><i class="ti ti-hash" aria-hidden="true" style="margin-right:4px;"></i>${m.id || '—'}</div>
         </div>`;
 
       hdr.onclick = () => {
