@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://api.allorigins.win; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>downnow.cloud — Executor Status</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -434,7 +436,7 @@
           <text x="9" y="13" text-anchor="middle" font-size="10" font-weight="700" fill="#e2e2f0" opacity="0.7" font-family="Inter,sans-serif">R</text>
         </svg>
         <div>
-          <div class="roblox-label">Roblox Version</div>
+          <div class="roblox-label">Roblox Client Upload</div>
           <div class="roblox-version" id="rbx-version-display">Loading...</div>
         </div>
       </div>
@@ -825,7 +827,9 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
   // ─── ROBLOX VERSION ───────────────────────────────────────────────────────
   function renderRobloxCard(data) {
     if (!data) return;
-    document.getElementById('rbx-version-display').textContent = data.currentVersion || '—';
+    // Show the Client Upload hash (e.g. version-76173e47a79145c7) — not the
+    // semver string — because that's the value that matters for executors.
+    document.getElementById('rbx-version-display').textContent = data.currentUpload || data.currentVersion || '—';
     const t = data.checkedAt || data.updatedAt;
     document.getElementById('rbx-checked-time').textContent = t
       ? 'Checked ' + new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -834,7 +838,7 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     const badge  = document.getElementById('rbx-badge');
     const banner = document.getElementById('roblox-banner');
 
-    if (data.updateDetected && data.currentVersion !== dismissedVersion) {
+    if (data.updateDetected && data.currentUpload !== dismissedVersion) {
       badge.className = 'roblox-badge updated';
       badge.textContent = 'Updated';
 
@@ -859,14 +863,14 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     } else {
       badge.className = 'roblox-badge live';
       badge.textContent = 'Live';
-      if (data.updateDetected && data.currentVersion === dismissedVersion) {
+      if (data.updateDetected && data.currentUpload === dismissedVersion) {
         banner.classList.remove('visible');
       }
     }
   }
 
   window.dismissRobloxBanner = function() {
-    if (robloxData) dismissedVersion = robloxData.currentVersion;
+    if (robloxData) dismissedVersion = robloxData.currentUpload;
     document.getElementById('roblox-banner').classList.remove('visible');
     const badge = document.getElementById('rbx-badge');
     badge.className = 'roblox-badge live';
@@ -876,11 +880,14 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
   // ─── POLL ROBLOX API ──────────────────────────────────────────────────────
   async function pollRoblox() {
     try {
-      // We use a CORS proxy since clientsettings.roblox.com blocks browsers
-      const url = 'https://clientsettings.roblox.com/v2/client-version/WindowsPlayer';
-      const res  = await fetch(url);
+      // clientsettings.roblox.com blocks direct browser requests (CORS).
+      // Route through allorigins so the fetch succeeds from the browser.
+      const target  = encodeURIComponent('https://clientsettings.roblox.com/v2/client-version/WindowsPlayer');
+      const proxyUrl = `https://api.allorigins.win/get?url=${target}`;
+      const res = await fetch(proxyUrl);
       if (!res.ok) return;
-      const json = await res.json();
+      const outer = await res.json();
+      const json  = JSON.parse(outer.contents);
       // json: { version, clientVersionUpload, bootstrapperVersion, ... }
 
       const robloxRef = doc(db, 'roblox', 'version');
@@ -888,11 +895,14 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
       const prev      = snap.exists() ? snap.data() : null;
 
       const newVersion = json.version || '';
-      const isUpdate   = prev && prev.currentVersion && prev.currentVersion !== newVersion;
+      const newUpload  = json.clientVersionUpload || '';
+      // Detect a real update by comparing the clientVersionUpload hash —
+      // this is the value that changes when Roblox ships a new client build.
+      const isUpdate = prev && prev.currentUpload && prev.currentUpload !== newUpload;
 
       await setDoc(robloxRef, {
         currentVersion:   newVersion,
-        currentUpload:    json.clientVersionUpload || '',
+        currentUpload:    newUpload,
         bootstrapper:     json.bootstrapperVersion  || '',
         previousVersion:  prev ? (prev.currentVersion || '') : '',
         previousUpload:   prev ? (prev.currentUpload  || '') : '',
