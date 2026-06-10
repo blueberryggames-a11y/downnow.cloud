@@ -192,6 +192,21 @@
     .roblox-badge.live    { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green);  }
     .roblox-badge.updated { background: var(--orange-bg); border-color: var(--orange-bd); color: var(--orange); }
 
+    /* ─── BOT SCAN INFO ─── */
+    #bot-scan-info {
+      font-size: 11px; color: var(--muted);
+      text-align: right;
+      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+    }
+    #bot-scan-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); display: inline-block;
+      animation: dot-pulse 3s ease-in-out infinite;
+    }
+    #bot-scan-dot.stale { background: var(--yellow); }
+    #bot-scan-dot.offline { background: var(--red); animation: none; }
+
     /* ─── GROUP ─── */
     .group {
       background: var(--card); border: 1px solid var(--border);
@@ -255,6 +270,8 @@
       flex: 1; height: 18px; border-radius: 2px;
       background: var(--green); opacity: 0.8;
       transition: opacity 0.15s;
+      cursor: default;
+      position: relative;
     }
     .uptime-segment:hover { opacity: 1; }
     .uptime-segment.down   { background: var(--red);    opacity: 0.85; }
@@ -446,6 +463,12 @@
       </div>
     </div>
 
+    <!-- Bot last scan line -->
+    <div id="bot-scan-info">
+      <span id="bot-scan-dot"></span>
+      <span id="bot-scan-text">Bot scan: —</span>
+    </div>
+
     <!-- WINDOWS -->
     <div class="group">
       <div class="group-header expanded" id="hdr-windows" onclick="toggleGroup('windows')">
@@ -470,7 +493,6 @@
     <div class="group">
       <div class="group-header expanded" id="hdr-mac" onclick="toggleGroup('mac')">
         <div class="group-header-left">
-          <!-- Apple logo SVG path -->
           <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10.54 8.52c-.02-1.96 1.6-2.9 1.67-2.95-0.91-1.33-2.33-1.51-2.84-1.53-1.21-.12-2.36.71-2.98.71-.61 0-1.56-.69-2.57-.67C2.3 4.1 1.04 4.95.4 6.22c-1.28 2.22-.33 5.5.92 7.3.61.88 1.34 1.87 2.3 1.84.92-.04 1.27-.6 2.38-.6 1.11 0 1.42.6 2.4.58.99-.02 1.62-.9 2.23-1.79.7-1.01 0.99-1.99 1-2.04-.02-.01-1.92-.74-1.94-2.97v-.02z" fill="currentColor" opacity="0.65"/>
             <path d="M8.74 2.08c.51-.62.85-1.48.76-2.34-.73.03-1.62.49-2.15 1.1-.47.54-.88 1.41-.77 2.24.82.06 1.65-.41 2.16-1z" fill="currentColor" opacity="0.65"/>
@@ -532,52 +554,49 @@
     <div class="modal-top">
       <div>
         <div class="modal-title">Bot API Reference</div>
-        <div class="modal-sub">Call these from your Discord bot to update statuses.</div>
+        <div class="modal-sub">How the Discord bot updates statuses in Firestore.</div>
       </div>
       <button class="modal-close" onclick="document.getElementById('api-modal').classList.remove('open')">×</button>
     </div>
 
-    <div class="code-label">Update single executor</div>
-    <div class="code-block">POST /api/executors/:name/status
-Content-Type: application/json
+    <div class="code-label">How status is determined</div>
+    <div class="code-block">The bot scans Discord channels every 5 minutes.
+🟢 channel  ->  online   (executor is up)
+🔴 channel  ->  offline  (executor is down)
+🟡 channel  ->  verifying (awaiting human update)
+
+After a Roblox update, all channels are auto-set to 🔴.
+After 3 hours, 🔴 channels auto-transition to 🟡.
+A human with Manage Channels can run /force green to confirm recovery.</div>
+
+    <div class="code-label">Firestore executor document</div>
+    <div class="code-block">Collection: executors
+Document:  &lt;executor name&gt;  e.g. "Xeno Status"
 
 {
-  "status": "online" | "offline" | "verifying" | "shutdown",
-  "key": "YOUR_SECRET_KEY"
+  status:    "online" | "offline" | "verifying" | "shutdown",
+  updatedAt: &lt;unix ms&gt;,
+  history:   ["online","online","down","verify", ...]  // last 90 scans
 }</div>
 
-    <div class="code-label">Bulk update</div>
-    <div class="code-block">POST /api/executors/bulk
+    <div class="code-label">Firestore roblox document</div>
+    <div class="code-block">Collection: roblox
+Document:  version
+
 {
-  "updates": [
-    { "name": "Xeno Status", "status": "online" },
-    { "name": "Volt Status", "status": "offline" }
-  ],
-  "key": "YOUR_SECRET_KEY"
+  currentVersion:  "0.725.0.7251138",
+  currentUpload:   "version-76173e47a79145c7",
+  bootstrapper:    "1, 6, 0, 7251138",
+  previousUpload:  "version-...",
+  updateDetected:  true | false,
+  checkedAt:       &lt;unix ms&gt;,
+  updatedAt:       &lt;unix ms&gt;
 }</div>
 
-    <div class="code-label">Notify Roblox update (bot → Firebase)</div>
-    <div class="code-block">// In your Discord bot when Roblox update detected:
-import { db } from './firebase.js';
-import { doc, setDoc } from 'firebase/firestore';
-
-await setDoc(doc(db, 'roblox', 'version'), {
-  currentVersion:   '0.725.0.7251138',
-  currentUpload:    'version-76173e47a79145c7',
-  bootstrapper:     '1, 6, 0, 7251138',
-  previousVersion:  '0.724.0.7240000',
-  previousUpload:   'version-ad5d3e2906444472',
-  updatedAt:        Date.now(),
-  updateDetected:   true
-});</div>
-
-    <div class="code-label">Update executor status (bot → Firebase)</div>
-    <div class="code-block">import { doc, updateDoc } from 'firebase/firestore';
-
-await updateDoc(doc(db, 'executors', 'Xeno Status'), {
-  status: 'offline',
-  updatedAt: Date.now()
-});</div>
+    <div class="code-label">Bot slash commands</div>
+    <div class="code-block">/force &lt;red|yellow|green&gt;   — force all channels to one color
+/executor &lt;name&gt; &lt;status&gt;   — override one executor manually
+/scan                        — trigger an immediate scan now</div>
   </div>
 </div>
 
@@ -586,7 +605,7 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
   import { initializeApp }             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAnalytics }              from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
   import {
-    getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs
+    getFirestore, doc, getDoc, setDoc, onSnapshot, collection
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -604,71 +623,61 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
   const db        = getFirestore(app);
 
   // ─── Executor definitions ─────────────────────────────────────────────────
-  // These are the canonical executors. The id is the Firestore doc name.
   const EXECUTOR_DEFS = {
     windows: [
-      { id: 'Xeno Status',      display: 'Xeno Status'       },
-      { id: 'Synapse Z Status', display: 'Synapse Z Status'  },
-      { id: 'Volt Status',      display: 'Volt Status'       },
-      { id: 'Solara Status',    display: 'Solara Status'     },
+      { id: 'Xeno Status',      display: 'Xeno Status'      },
+      { id: 'Synapse Z Status', display: 'Synapse Z Status' },
+      { id: 'Volt Status',      display: 'Volt Status'      },
+      { id: 'Solara Status',    display: 'Solara Status'    },
     ],
     mac: [
       { id: 'Opium Ware Status', display: 'Opium Ware Status' },
     ],
     dual: [
-      { id: 'Ronix Status',     display: 'Ronix Status'      },
-      { id: 'Madium Status',    display: 'Madium Status'     },
-      { id: 'Potassium Status', display: 'Potassium Status'  },
+      { id: 'Ronix Status',     display: 'Ronix Status'     },
+      { id: 'Madium Status',    display: 'Madium Status'    },
+      { id: 'Potassium Status', display: 'Potassium Status' },
     ]
   };
 
   const DEFAULT_STATUS = 'verifying';
 
   // ─── State ────────────────────────────────────────────────────────────────
-  let execState  = {};   // { 'Xeno Status': { status, updatedAt, history } }
-  let robloxData = null;
+  let execState        = {};
+  let robloxData       = null;
   let dismissedVersion = null;
 
   // ─── Status meta ─────────────────────────────────────────────────────────
   const STATUS_META = {
-    online:    { label: 'Operational',    cls: 'label-green',  dot: 'green',  chip: 'chip-green',  chipLabel: 'Operational', seg: 'online'  },
-    verifying: { label: 'Verifying',      cls: 'label-yellow', dot: 'yellow', chip: 'chip-yellow', chipLabel: 'Degraded',    seg: 'verify'  },
-    offline:   { label: 'Offline',        cls: 'label-red',    dot: 'red',    chip: 'chip-red',    chipLabel: 'Outage',      seg: 'down'    },
-    shutdown:  { label: 'Shutdown',       cls: 'label-purple', dot: 'purple', chip: 'chip-purple', chipLabel: 'Shutdown',    seg: 'shut'    },
+    online:    { label: 'Operational', cls: 'label-green',  dot: 'green',  chip: 'chip-green',  chipLabel: 'Operational', seg: 'online'  },
+    verifying: { label: 'Verifying',   cls: 'label-yellow', dot: 'yellow', chip: 'chip-yellow', chipLabel: 'Degraded',    seg: 'verify'  },
+    offline:   { label: 'Offline',     cls: 'label-red',    dot: 'red',    chip: 'chip-red',    chipLabel: 'Outage',      seg: 'down'    },
+    shutdown:  { label: 'Shutdown',    cls: 'label-purple', dot: 'purple', chip: 'chip-purple', chipLabel: 'Shutdown',    seg: 'shut'    },
   };
 
   // ─── Seed Firestore with executor docs if missing ─────────────────────────
   async function seedExecutors() {
     const allDefs = [...EXECUTOR_DEFS.windows, ...EXECUTOR_DEFS.mac, ...EXECUTOR_DEFS.dual];
     for (const def of allDefs) {
-      const ref = doc(db, 'executors', def.id);
+      const ref  = doc(db, 'executors', def.id);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
+        // Create with 90 "online" history segments; the bot will overwrite on first scan
+        const hist = Array(90).fill('online');
         await setDoc(ref, {
           status:    DEFAULT_STATUS,
-          category:  Object.keys(EXECUTOR_DEFS).find(k => EXECUTOR_DEFS[k].some(e => e.id === def.id)),
           updatedAt: Date.now(),
-          history:   genHistory(DEFAULT_STATUS)
+          history:   hist,
         });
       }
     }
   }
 
-  function genHistory(currentStatus) {
-    const segs = [];
-    for (let i = 0; i < 90; i++) {
-      segs.push(i === 89 ? statusToSeg(currentStatus) : 'online');
-    }
-    return segs;
-  }
-
-  function statusToSeg(s) {
-    return s === 'online' ? 'online' : s === 'verifying' ? 'verify' : s === 'offline' ? 'down' : 'shut';
-  }
-
+  // ─── Uptime % — based on actual history written by the bot ───────────────
   function uptimePct(history) {
     if (!history || !history.length) return '100.00';
-    return ((history.filter(s => s === 'online').length / history.length) * 100).toFixed(2);
+    const online = history.filter(s => s === 'online').length;
+    return ((online / history.length) * 100).toFixed(2);
   }
 
   function groupStatus(ids) {
@@ -681,13 +690,14 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
   function renderExecRow(def) {
-    const data = execState[def.id] || { status: DEFAULT_STATUS, history: genHistory(DEFAULT_STATUS) };
-    const meta = STATUS_META[data.status] || STATUS_META.verifying;
-    const pct  = uptimePct(data.history);
+    const data    = execState[def.id] || { status: DEFAULT_STATUS, history: Array(90).fill('online') };
+    const meta    = STATUS_META[data.status] || STATUS_META.verifying;
+    const history = data.history || Array(90).fill('online');
+    const pct     = uptimePct(history);
 
     const row = document.createElement('div');
-    row.className = 'executor-row';
-    row.dataset.id = def.id;
+    row.className   = 'executor-row';
+    row.dataset.id  = def.id;
 
     row.innerHTML = `
       <div class="exec-name">
@@ -699,9 +709,9 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
       <div class="exec-status-label ${meta.cls}">${meta.label}</div>
     `;
 
-    // build bar segments
+    // Build bar from history (oldest left, newest right)
     const barWrap = row.querySelector('.uptime-bar-wrap');
-    (data.history || []).forEach(seg => {
+    history.forEach(seg => {
       const s = document.createElement('div');
       s.className = 'uptime-segment';
       if (seg === 'down')   s.classList.add('down');
@@ -721,8 +731,8 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     const st   = groupStatus(defs.map(d => d.id));
     const m    = STATUS_META[st];
     const chip = document.getElementById('chip-' + catId);
-    chip.className = `status-chip ${m.chip}`;
-    chip.innerHTML = `<span class="chip-dot${st === 'verifying' ? ' pulse' : ''}"></span><span>${m.chipLabel}</span>`;
+    chip.className  = `status-chip ${m.chip}`;
+    chip.innerHTML  = `<span class="chip-dot${st === 'verifying' ? ' pulse' : ''}"></span><span>${m.chipLabel}</span>`;
   }
 
   function renderBanner() {
@@ -748,6 +758,7 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
       text.textContent = `${verifying} executor${verifying > 1 ? 's' : ''} verifying`;
     } else if (shutdown > 0) {
       banner.className = 'status-banner degraded';
+      banner.querySelector('svg').innerHTML = '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v4M8 11.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
       text.textContent = `${shutdown} executor${shutdown > 1 ? 's' : ''} shut down`;
     } else {
       banner.className = 'status-banner all-good';
@@ -756,11 +767,40 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     }
   }
 
-  function renderAll() {
-    renderGroup('windows', EXECUTOR_DEFS.windows);
-    renderGroup('mac',     EXECUTOR_DEFS.mac);
-    renderGroup('dual',    EXECUTOR_DEFS.dual);
-    renderBanner();
+  // ─── Bot scan indicator ───────────────────────────────────────────────────
+  function updateBotScanIndicator() {
+    // Find the most-recently updated executor's updatedAt timestamp
+    const allDefs = [...EXECUTOR_DEFS.windows, ...EXECUTOR_DEFS.mac, ...EXECUTOR_DEFS.dual];
+    const latestMs = allDefs.reduce((best, def) => {
+      const d = execState[def.id];
+      return d && d.updatedAt ? Math.max(best, d.updatedAt) : best;
+    }, 0);
+
+    const dot  = document.getElementById('bot-scan-dot');
+    const text = document.getElementById('bot-scan-text');
+
+    if (!latestMs) {
+      dot.className  = '';
+      dot.id         = 'bot-scan-dot';
+      text.textContent = 'Bot scan: waiting for first scan…';
+      return;
+    }
+
+    const age = Date.now() - latestMs;
+    const mins = Math.floor(age / 60000);
+
+    let timeStr;
+    if (mins < 1)       timeStr = 'just now';
+    else if (mins < 60) timeStr = `${mins}m ago`;
+    else                timeStr = `${Math.floor(mins/60)}h ${mins%60}m ago`;
+
+    text.textContent = `Bot last scanned: ${timeStr}`;
+
+    // Green if < 7 min old, yellow < 20 min, red otherwise
+    dot.className = 'stale';
+    dot.id        = 'bot-scan-dot';
+    if (age < 7 * 60 * 1000)  dot.className = '';
+    else if (age > 20 * 60000) dot.className = 'offline';
   }
 
   // ─── INCIDENTS ────────────────────────────────────────────────────────────
@@ -782,7 +822,7 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
 
     Object.entries(byDate).forEach(([date, list]) => {
       const dl = document.createElement('div');
-      dl.className = 'incident-date';
+      dl.className   = 'incident-date';
       dl.textContent = date;
       el.appendChild(dl);
 
@@ -790,9 +830,9 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
         const card = document.createElement('div');
         card.className = 'incident-card';
 
-        const hdr = document.createElement('div');
-        hdr.className = 'incident-header open';
-        hdr.innerHTML = `
+        const hdr  = document.createElement('div');
+        hdr.className  = 'incident-header open';
+        hdr.innerHTML  = `
           <div class="incident-title">${inc.title}</div>
           <div class="status-chip chip-red" style="font-size:11px;padding:2px 9px;">${inc.type || 'Downtime'}</div>`;
 
@@ -827,8 +867,6 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
   // ─── ROBLOX VERSION ───────────────────────────────────────────────────────
   function renderRobloxCard(data) {
     if (!data) return;
-    // Show the Client Upload hash (e.g. version-76173e47a79145c7) — not the
-    // semver string — because that's the value that matters for executors.
     document.getElementById('rbx-version-display').textContent = data.currentUpload || data.currentVersion || '—';
     const t = data.checkedAt || data.updatedAt;
     document.getElementById('rbx-checked-time').textContent = t
@@ -839,18 +877,17 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     const banner = document.getElementById('roblox-banner');
 
     if (data.updateDetected && data.currentUpload !== dismissedVersion) {
-      badge.className = 'roblox-badge updated';
+      badge.className  = 'roblox-badge updated';
       badge.textContent = 'Updated';
 
-      // populate banner detail grid
       const grid = document.getElementById('rbx-detail-grid');
       grid.innerHTML = '';
       const fields = [
-        ['New Version',       data.currentVersion  || '—'],
-        ['Client Upload',     data.currentUpload   || '—'],
-        ['Bootstrapper',      data.bootstrapper    || '—'],
-        ['Previous Version',  data.previousVersion || '—'],
-        ['Previous Upload',   data.previousUpload  || '—'],
+        ['New Version',      data.currentVersion  || '—'],
+        ['Client Upload',    data.currentUpload   || '—'],
+        ['Bootstrapper',     data.bootstrapper    || '—'],
+        ['Previous Version', data.previousVersion || '—'],
+        ['Previous Upload',  data.previousUpload  || '—'],
       ];
       fields.forEach(([label, value]) => {
         grid.innerHTML += `
@@ -861,9 +898,9 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
       });
       banner.classList.add('visible');
     } else {
-      badge.className = 'roblox-badge live';
+      badge.className  = 'roblox-badge live';
       badge.textContent = 'Live';
-      if (data.updateDetected && data.currentUpload === dismissedVersion) {
+      if (data.currentUpload === dismissedVersion) {
         banner.classList.remove('visible');
       }
     }
@@ -873,48 +910,9 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     if (robloxData) dismissedVersion = robloxData.currentUpload;
     document.getElementById('roblox-banner').classList.remove('visible');
     const badge = document.getElementById('rbx-badge');
-    badge.className = 'roblox-badge live';
+    badge.className  = 'roblox-badge live';
     badge.textContent = 'Live';
   };
-
-  // ─── POLL ROBLOX API ──────────────────────────────────────────────────────
-  async function pollRoblox() {
-    try {
-      // clientsettings.roblox.com blocks direct browser requests (CORS).
-      // Route through allorigins so the fetch succeeds from the browser.
-      const target  = encodeURIComponent('https://clientsettings.roblox.com/v2/client-version/WindowsPlayer');
-      const proxyUrl = `https://api.allorigins.win/get?url=${target}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) return;
-      const outer = await res.json();
-      const json  = JSON.parse(outer.contents);
-      // json: { version, clientVersionUpload, bootstrapperVersion, ... }
-
-      const robloxRef = doc(db, 'roblox', 'version');
-      const snap      = await getDoc(robloxRef);
-      const prev      = snap.exists() ? snap.data() : null;
-
-      const newVersion = json.version || '';
-      const newUpload  = json.clientVersionUpload || '';
-      // Detect a real update by comparing the clientVersionUpload hash —
-      // this is the value that changes when Roblox ships a new client build.
-      const isUpdate = prev && prev.currentUpload && prev.currentUpload !== newUpload;
-
-      await setDoc(robloxRef, {
-        currentVersion:   newVersion,
-        currentUpload:    newUpload,
-        bootstrapper:     json.bootstrapperVersion  || '',
-        previousVersion:  prev ? (prev.currentVersion || '') : '',
-        previousUpload:   prev ? (prev.currentUpload  || '') : '',
-        updateDetected:   isUpdate ? true : (prev ? !!prev.updateDetected : false),
-        updatedAt:        isUpdate ? Date.now() : (prev ? prev.updatedAt : Date.now()),
-        checkedAt:        Date.now(),
-      }, { merge: true });
-
-    } catch(e) {
-      console.warn('Roblox poll failed:', e.message);
-    }
-  }
 
   // ─── NAV ──────────────────────────────────────────────────────────────────
   window.showSection = function(id) {
@@ -936,40 +934,44 @@ await updateDoc(doc(db, 'executors', 'Xeno Status'), {
     hdr.classList.toggle('expanded', !isOpen);
   };
 
+  function renderAll() {
+    renderGroup('windows', EXECUTOR_DEFS.windows);
+    renderGroup('mac',     EXECUTOR_DEFS.mac);
+    renderGroup('dual',    EXECUTOR_DEFS.dual);
+    renderBanner();
+    updateBotScanIndicator();
+  }
+
   // ─── INIT ─────────────────────────────────────────────────────────────────
   async function init() {
     document.getElementById('loading-state').style.display = 'flex';
 
     await seedExecutors();
 
-    // Realtime listener on executors collection
-    const execColRef = collection(db, 'executors');
-    onSnapshot(execColRef, snapshot => {
+    // Realtime listener: executors collection
+    onSnapshot(collection(db, 'executors'), snapshot => {
       snapshot.forEach(d => { execState[d.id] = d.data(); });
       renderAll();
       document.getElementById('loading-state').style.display = 'none';
       document.getElementById('panel-status').classList.add('active');
     });
 
-    // Realtime listener on roblox version doc
-    const robloxRef = doc(db, 'roblox', 'version');
-    onSnapshot(robloxRef, snap => {
+    // Realtime listener: roblox version doc
+    onSnapshot(doc(db, 'roblox', 'version'), snap => {
       robloxData = snap.exists() ? snap.data() : null;
       renderRobloxCard(robloxData);
     });
 
-    // Realtime listener on incidents collection
-    const incColRef = collection(db, 'incidents');
-    onSnapshot(incColRef, snapshot => {
+    // Realtime listener: incidents collection
+    onSnapshot(collection(db, 'incidents'), snapshot => {
       const incidents = [];
       snapshot.forEach(d => incidents.push({ id: d.id, ...d.data() }));
       incidents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       renderIncidents(incidents);
     });
 
-    // Poll Roblox API immediately then every 5 minutes
-    await pollRoblox();
-    setInterval(pollRoblox, 5 * 60 * 1000);
+    // Refresh "X minutes ago" label every minute without needing a Firestore round-trip
+    setInterval(updateBotScanIndicator, 60_000);
   }
 
   init().catch(console.error);
