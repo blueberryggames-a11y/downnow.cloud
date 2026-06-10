@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>downnow.cloud — Executor Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d14;
+      --surface:  #13131f;
+      --card:     #181825;
+      --border:   #1e1e2e;
+      --border-hi:#2a2a3d;
+      --text:     #e2e2f0;
+      --muted:    #6b6b8a;
+      --dim:      #3a3a52;
+
+      --green:    #22c55e;
+      --green-bg: rgba(34,197,94,0.10);
+      --green-bd: rgba(34,197,94,0.22);
+
+      --yellow:   #f59e0b;
+      --yellow-bg:rgba(245,158,11,0.10);
+      --yellow-bd:rgba(245,158,11,0.22);
+
+      --red:      #ef4444;
+      --red-bg:   rgba(239,68,68,0.10);
+      --red-bd:   rgba(239,68,68,0.22);
+
+      --purple:   #a78bfa;
+      --purple-bg:rgba(167,139,250,0.10);
+      --purple-bd:rgba(167,139,250,0.22);
+
+      --orange:   #f97316;
+      --orange-bg:rgba(249,115,22,0.10);
+      --orange-bd:rgba(249,115,22,0.22);
+
+      --radius: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(13,13,20,0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 860px; margin: 0 auto;
+      padding: 0 24px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 9px;
+      font-weight: 600; font-size: 15px; letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link {
+      font-size: 13px; font-weight: 500; color: var(--muted);
+      padding: 5px 12px; border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-link:hover, .nav-link.active { color: var(--text); background: var(--surface); }
+    .nav-cta {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border-hi);
+      padding: 5px 14px; border-radius: 6px;
+      transition: border-color 0.15s;
+    }
+    .nav-cta:hover { border-color: var(--dim); }
+
+    /* ─── PAGE ─── */
+    .page { max-width: 860px; margin: 0 auto; padding: 36px 24px 80px; }
+
+    /* ─── ROBLOX UPDATE BANNER ─── */
+    #roblox-banner {
+      display: none;
+      background: var(--orange-bg);
+      border: 1px solid var(--orange-bd);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    #roblox-banner.visible { display: block; }
+    .rbx-banner-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .rbx-banner-title {
+      font-size: 14px; font-weight: 700; color: var(--orange);
+    }
+    .rbx-banner-sub {
+      font-size: 12px; color: var(--muted); margin-top: 1px;
+    }
+    .rbx-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    .rbx-field {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .rbx-field-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+    }
+    .rbx-field-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text);
+    }
+    .rbx-dismiss {
+      float: right; margin-top: -2px;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted); padding: 2px 8px;
+      border: 1px solid var(--border); border-radius: 5px;
+      cursor: pointer; background: none;
+      transition: color 0.15s;
+    }
+    .rbx-dismiss:hover { color: var(--text); }
+
+    /* ─── STATUS BANNER ─── */
+    .status-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      border-radius: var(--radius); border: 1px solid;
+      margin-bottom: 24px;
+      font-size: 14px; font-weight: 600;
+    }
+    .status-banner.all-good  { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green);  }
+    .status-banner.degraded  { background: var(--yellow-bg); border-color: var(--yellow-bd); color: var(--yellow); }
+    .status-banner.outage    { background: var(--red-bg);    border-color: var(--red-bd);    color: var(--red);    }
+
+    /* ─── ROBLOX VERSION CARD ─── */
+    .roblox-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 20px;
+      margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .roblox-card-left {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .roblox-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .roblox-version {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 500; color: var(--text);
+    }
+    .roblox-card-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .roblox-checked {
+      font-size: 11px; color: var(--muted);
+    }
+    .roblox-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 9px;
+      border-radius: 20px; border: 1px solid;
+    }
+    .roblox-badge.live    { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green);  }
+    .roblox-badge.updated { background: var(--orange-bg); border-color: var(--orange-bd); color: var(--orange); }
+
+    /* ─── GROUP ─── */
+    .group {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 10px; overflow: hidden;
+    }
+    .group-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 20px; cursor: pointer; user-select: none;
+      border-bottom: 1px solid transparent; transition: border-color 0.15s;
+    }
+    .group-header.expanded { border-bottom-color: var(--border); }
+    .group-header-left {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .group-header-right { display: flex; align-items: center; gap: 10px; }
+
+    .status-chip {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px; border: 1px solid;
+    }
+    .chip-green  { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green);  }
+    .chip-yellow { background: var(--yellow-bg); border-color: var(--yellow-bd); color: var(--yellow); }
+    .chip-red    { background: var(--red-bg);    border-color: var(--red-bd);    color: var(--red);    }
+    .chip-purple { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple); }
+    .chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .chip-dot.pulse { animation: dot-pulse 2s ease-in-out infinite; }
+
+    .chevron { color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ─── EXECUTOR ROW ─── */
+    .executor-list { padding: 0 20px; }
+    .executor-row {
+      display: grid;
+      grid-template-columns: 1fr 70px 140px 110px;
+      align-items: center; gap: 14px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .executor-row:last-child { border-bottom: none; }
+
+    .exec-name {
+      font-size: 13px; font-weight: 500; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .exec-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .exec-dot.green  { background: var(--green); }
+    .exec-dot.yellow { background: var(--yellow); animation: dot-pulse 2s infinite; }
+    .exec-dot.red    { background: var(--red); }
+    .exec-dot.purple { background: var(--purple); }
+
+    .exec-uptime-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap;
+    }
+
+    .uptime-bar-wrap { display: flex; gap: 1.5px; align-items: center; height: 22px; }
+    .uptime-segment {
+      flex: 1; height: 18px; border-radius: 2px;
+      background: var(--green); opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    .uptime-segment:hover { opacity: 1; }
+    .uptime-segment.down   { background: var(--red);    opacity: 0.85; }
+    .uptime-segment.verify { background: var(--yellow); opacity: 0.75; }
+    .uptime-segment.shut   { background: var(--purple); opacity: 0.55; }
+
+    .exec-status-label {
+      font-size: 12px; font-weight: 500; text-align: right; white-space: nowrap;
+    }
+    .label-green  { color: var(--green); }
+    .label-yellow { color: var(--yellow); }
+    .label-red    { color: var(--red); }
+    .label-purple { color: var(--purple); }
+
+    /* ─── SECTION PANELS ─── */
+    .section-panel { display: none; }
+    .section-panel.active { display: block; }
+
+    /* ─── INCIDENTS ─── */
+    .section-title {
+      font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--text); margin-bottom: 20px;
+    }
+    .empty-state {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px 20px;
+      text-align: center; color: var(--muted); font-size: 13px;
+    }
+    .incident-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600; color: var(--purple);
+      margin: 20px 0 8px;
+    }
+    .incident-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
+    }
+    .incident-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 20px; cursor: pointer;
+      border-bottom: 1px solid transparent; transition: border-color 0.15s;
+    }
+    .incident-header.open { border-bottom-color: var(--border); }
+    .incident-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .incident-entry {
+      display: flex; gap: 14px;
+      padding: 13px 20px; border-bottom: 1px solid var(--border);
+    }
+    .incident-entry:last-child { border-bottom: none; }
+    .tl-dot {
+      width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid var(--border-hi); background: var(--bg); margin-top: 3px;
+    }
+    .incident-meta { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+    .incident-meta strong { color: var(--dim); font-weight: 600; margin-right: 5px; }
+    .incident-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+    /* ─── LOADING ─── */
+    .loading-state {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 60px 20px;
+      color: var(--muted); font-size: 13px;
+    }
+    .spin {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--border-hi);
+      border-top-color: var(--purple);
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 24px; text-align: center;
+      font-size: 12px; color: var(--muted);
+    }
+    footer a { color: var(--dim); transition: color 0.15s; }
+    footer a:hover { color: var(--text); }
+
+    /* ─── API MODAL ─── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--card); border: 1px solid var(--border-hi);
+      border-radius: 10px; padding: 26px; max-width: 580px; width: 90%;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+    .modal-title { font-size: 15px; font-weight: 700; }
+    .modal-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .modal-close { font-size: 18px; color: var(--muted); background: none; border: none; cursor: pointer; line-height: 1; padding: 0; }
+    .code-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted); margin: 14px 0 6px;
+    }
+    .code-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 11px 14px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--purple); white-space: pre-wrap; line-height: 1.65;
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes dot-pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .executor-row { grid-template-columns: 1fr 90px; grid-template-rows: auto auto; }
+      .exec-uptime-pct { display: none; }
+      .uptime-bar-wrap { grid-column: 1 / -1; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="/">
+      <div class="logo-mark">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.5 6.5C12.5 4.29 10.71 2.5 8.5 2.5C6.79 2.5 5.33 3.58 4.74 5.09C4.33 4.89 3.86 4.79 3.37 4.83C2.04 4.94 1 6.07 1 7.4C1 8.84 2.16 10 3.6 10H12C13.1 10 14 9.1 14 8C14 7.17 13.5 6.46 12.78 6.14Z" fill="#a78bfa" opacity="0.45"/>
+          <path d="M8 7L6.5 10H8.25L7.5 13L10 9H8.5L9.5 7H8Z" fill="#a78bfa"/>
+        </svg>
+      </div>
+      downnow.cloud
+    </a>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showSection('status')">Status</button>
+      <button class="nav-link" onclick="showSection('maintenance')">Maintenance</button>
+      <button class="nav-link" onclick="showSection('incidents')">Previous incidents</button>
+    </div>
+    <button class="nav-cta" onclick="document.getElementById('api-modal').classList.add('open')">API docs</button>
+  </div>
+</nav>
+
+<!-- ═══ PAGE ═══ -->
+<div class="page">
+
+  <!-- Loading state -->
+  <div id="loading-state" class="loading-state">
+    <div class="spin"></div>
+    Connecting to Firebase...
+  </div>
+
+  <!-- ══ STATUS PANEL ══ -->
+  <div id="panel-status" class="section-panel">
+
+    <!-- Roblox update banner -->
+    <div id="roblox-banner">
+      <div class="rbx-banner-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f97316" stroke-width="1.5"/><path d="M8 4.5v4M8 11v.5" stroke="#f97316" stroke-width="2" stroke-linecap="round"/></svg>
+        <div>
+          <div class="rbx-banner-title">Roblox Update Detected</div>
+          <div class="rbx-banner-sub">Executors are likely down for at least 6 hours while they update.</div>
+        </div>
+        <button class="rbx-dismiss" onclick="dismissRobloxBanner()">Dismiss</button>
+      </div>
+      <div class="rbx-grid" id="rbx-detail-grid"></div>
+    </div>
+
+    <!-- Executor status banner -->
+    <div class="status-banner all-good" id="global-banner">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="banner-text">All executors operational</span>
+    </div>
+
+    <!-- Roblox version info card -->
+    <div class="roblox-card">
+      <div class="roblox-card-left">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="14" height="14" rx="3" fill="#e2e2f0" opacity="0.08" stroke="#3a3a52" stroke-width="1"/>
+          <text x="9" y="13" text-anchor="middle" font-size="10" font-weight="700" fill="#e2e2f0" opacity="0.7" font-family="Inter,sans-serif">R</text>
+        </svg>
+        <div>
+          <div class="roblox-label">Roblox Version</div>
+          <div class="roblox-version" id="rbx-version-display">Loading...</div>
+        </div>
+      </div>
+      <div class="roblox-card-right">
+        <span class="roblox-checked" id="rbx-checked-time">—</span>
+        <span class="roblox-badge live" id="rbx-badge">Live</span>
+      </div>
+    </div>
+
+    <!-- WINDOWS -->
+    <div class="group">
+      <div class="group-header expanded" id="hdr-windows" onclick="toggleGroup('windows')">
+        <div class="group-header-left">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="1" width="5.5" height="5.5" rx="1" fill="currentColor" opacity="0.65"/>
+            <rect x="7.5" y="1" width="5.5" height="5.5" rx="1" fill="currentColor" opacity="0.65"/>
+            <rect x="1" y="7.5" width="5.5" height="5.5" rx="1" fill="currentColor" opacity="0.65"/>
+            <rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1" fill="currentColor" opacity="0.65"/>
+          </svg>
+          Windows
+        </div>
+        <div class="group-header-right">
+          <div class="status-chip chip-green" id="chip-windows"><span class="chip-dot"></span><span>Operational</span></div>
+          <svg class="chevron open" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="executor-list" id="list-windows"></div>
+    </div>
+
+    <!-- MAC -->
+    <div class="group">
+      <div class="group-header expanded" id="hdr-mac" onclick="toggleGroup('mac')">
+        <div class="group-header-left">
+          <!-- Apple logo SVG path -->
+          <svg width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.54 8.52c-.02-1.96 1.6-2.9 1.67-2.95-0.91-1.33-2.33-1.51-2.84-1.53-1.21-.12-2.36.71-2.98.71-.61 0-1.56-.69-2.57-.67C2.3 4.1 1.04 4.95.4 6.22c-1.28 2.22-.33 5.5.92 7.3.61.88 1.34 1.87 2.3 1.84.92-.04 1.27-.6 2.38-.6 1.11 0 1.42.6 2.4.58.99-.02 1.62-.9 2.23-1.79.7-1.01 0.99-1.99 1-2.04-.02-.01-1.92-.74-1.94-2.97v-.02z" fill="currentColor" opacity="0.65"/>
+            <path d="M8.74 2.08c.51-.62.85-1.48.76-2.34-.73.03-1.62.49-2.15 1.1-.47.54-.88 1.41-.77 2.24.82.06 1.65-.41 2.16-1z" fill="currentColor" opacity="0.65"/>
+          </svg>
+          Mac
+        </div>
+        <div class="group-header-right">
+          <div class="status-chip chip-green" id="chip-mac"><span class="chip-dot"></span><span>Operational</span></div>
+          <svg class="chevron open" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="executor-list" id="list-mac"></div>
+    </div>
+
+    <!-- DUAL -->
+    <div class="group">
+      <div class="group-header expanded" id="hdr-dual" onclick="toggleGroup('dual')">
+        <div class="group-header-left">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
+            <path d="M7 2.5V7l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+          </svg>
+          Dual-Supported
+        </div>
+        <div class="group-header-right">
+          <div class="status-chip chip-green" id="chip-dual"><span class="chip-dot"></span><span>Operational</span></div>
+          <svg class="chevron open" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="executor-list" id="list-dual"></div>
+    </div>
+
+  </div><!-- /status panel -->
+
+  <!-- ══ MAINTENANCE PANEL ══ -->
+  <div id="panel-maintenance" class="section-panel">
+    <div class="section-title">Maintenance</div>
+    <div class="empty-state">No scheduled maintenance windows.</div>
+  </div>
+
+  <!-- ══ INCIDENTS PANEL ══ -->
+  <div id="panel-incidents" class="section-panel">
+    <div class="section-title">Previous incidents</div>
+    <div id="incidents-list"></div>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  <div style="max-width:860px;margin:0 auto">
+    downnow.cloud &mdash; executor status &nbsp;·&nbsp;
+    <a href="https://discord.gg/AxFA6c3ymM" target="_blank">discord.gg/AxFA6c3ymM</a>
+  </div>
+</footer>
+
+<!-- ═══ API MODAL ═══ -->
+<div class="modal-overlay" id="api-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div>
+        <div class="modal-title">Bot API Reference</div>
+        <div class="modal-sub">Call these from your Discord bot to update statuses.</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('api-modal').classList.remove('open')">×</button>
+    </div>
+
+    <div class="code-label">Update single executor</div>
+    <div class="code-block">POST /api/executors/:name/status
+Content-Type: application/json
+
+{
+  "status": "online" | "offline" | "verifying" | "shutdown",
+  "key": "YOUR_SECRET_KEY"
+}</div>
+
+    <div class="code-label">Bulk update</div>
+    <div class="code-block">POST /api/executors/bulk
+{
+  "updates": [
+    { "name": "Xeno Status", "status": "online" },
+    { "name": "Volt Status", "status": "offline" }
+  ],
+  "key": "YOUR_SECRET_KEY"
+}</div>
+
+    <div class="code-label">Notify Roblox update (bot → Firebase)</div>
+    <div class="code-block">// In your Discord bot when Roblox update detected:
+import { db } from './firebase.js';
+import { doc, setDoc } from 'firebase/firestore';
+
+await setDoc(doc(db, 'roblox', 'version'), {
+  currentVersion:   '0.725.0.7251138',
+  currentUpload:    'version-76173e47a79145c7',
+  bootstrapper:     '1, 6, 0, 7251138',
+  previousVersion:  '0.724.0.7240000',
+  previousUpload:   'version-ad5d3e2906444472',
+  updatedAt:        Date.now(),
+  updateDetected:   true
+});</div>
+
+    <div class="code-label">Update executor status (bot → Firebase)</div>
+    <div class="code-block">import { doc, updateDoc } from 'firebase/firestore';
+
+await updateDoc(doc(db, 'executors', 'Xeno Status'), {
+  status: 'offline',
+  updatedAt: Date.now()
+});</div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAnalytics }              from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDU-ys2nYqGeNKoQcnmGILX2UqZWZOmx1c",
+    authDomain:        "downnow-f8b8f.firebaseapp.com",
+    projectId:         "downnow-f8b8f",
+    storageBucket:     "downnow-f8b8f.firebasestorage.app",
+    messagingSenderId: "175111563390",
+    appId:             "1:175111563390:web:13e06240f704e58892902f",
+    measurementId:     "G-4E1CJX187K"
+  };
+
+  const app       = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db        = getFirestore(app);
+
+  // ─── Executor definitions ─────────────────────────────────────────────────
+  // These are the canonical executors. The id is the Firestore doc name.
+  const EXECUTOR_DEFS = {
+    windows: [
+      { id: 'Xeno Status',      display: 'Xeno Status'       },
+      { id: 'Synapse Z Status', display: 'Synapse Z Status'  },
+      { id: 'Volt Status',      display: 'Volt Status'       },
+      { id: 'Solara Status',    display: 'Solara Status'     },
+    ],
+    mac: [
+      { id: 'Opium Ware Status', display: 'Opium Ware Status' },
+    ],
+    dual: [
+      { id: 'Ronix Status',     display: 'Ronix Status'      },
+      { id: 'Madium Status',    display: 'Madium Status'     },
+      { id: 'Potassium Status', display: 'Potassium Status'  },
+    ]
+  };
+
+  const DEFAULT_STATUS = 'verifying';
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  let execState  = {};   // { 'Xeno Status': { status, updatedAt, history } }
+  let robloxData = null;
+  let dismissedVersion = null;
+
+  // ─── Status meta ─────────────────────────────────────────────────────────
+  const STATUS_META = {
+    online:    { label: 'Operational',    cls: 'label-green',  dot: 'green',  chip: 'chip-green',  chipLabel: 'Operational', seg: 'online'  },
+    verifying: { label: 'Verifying',      cls: 'label-yellow', dot: 'yellow', chip: 'chip-yellow', chipLabel: 'Degraded',    seg: 'verify'  },
+    offline:   { label: 'Offline',        cls: 'label-red',    dot: 'red',    chip: 'chip-red',    chipLabel: 'Outage',      seg: 'down'    },
+    shutdown:  { label: 'Shutdown',       cls: 'label-purple', dot: 'purple', chip: 'chip-purple', chipLabel: 'Shutdown',    seg: 'shut'    },
+  };
+
+  // ─── Seed Firestore with executor docs if missing ─────────────────────────
+  async function seedExecutors() {
+    const allDefs = [...EXECUTOR_DEFS.windows, ...EXECUTOR_DEFS.mac, ...EXECUTOR_DEFS.dual];
+    for (const def of allDefs) {
+      const ref = doc(db, 'executors', def.id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          status:    DEFAULT_STATUS,
+          category:  Object.keys(EXECUTOR_DEFS).find(k => EXECUTOR_DEFS[k].some(e => e.id === def.id)),
+          updatedAt: Date.now(),
+          history:   genHistory(DEFAULT_STATUS)
+        });
+      }
+    }
+  }
+
+  function genHistory(currentStatus) {
+    const segs = [];
+    for (let i = 0; i < 90; i++) {
+      segs.push(i === 89 ? statusToSeg(currentStatus) : 'online');
+    }
+    return segs;
+  }
+
+  function statusToSeg(s) {
+    return s === 'online' ? 'online' : s === 'verifying' ? 'verify' : s === 'offline' ? 'down' : 'shut';
+  }
+
+  function uptimePct(history) {
+    if (!history || !history.length) return '100.00';
+    return ((history.filter(s => s === 'online').length / history.length) * 100).toFixed(2);
+  }
+
+  function groupStatus(ids) {
+    const statuses = ids.map(id => (execState[id] || {}).status || DEFAULT_STATUS);
+    if (statuses.includes('offline'))   return 'offline';
+    if (statuses.includes('shutdown'))  return 'shutdown';
+    if (statuses.includes('verifying')) return 'verifying';
+    return 'online';
+  }
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
+  function renderExecRow(def) {
+    const data = execState[def.id] || { status: DEFAULT_STATUS, history: genHistory(DEFAULT_STATUS) };
+    const meta = STATUS_META[data.status] || STATUS_META.verifying;
+    const pct  = uptimePct(data.history);
+
+    const row = document.createElement('div');
+    row.className = 'executor-row';
+    row.dataset.id = def.id;
+
+    row.innerHTML = `
+      <div class="exec-name">
+        <span class="exec-dot ${meta.dot}"></span>
+        ${def.display}
+      </div>
+      <div class="exec-uptime-pct">${pct}%</div>
+      <div class="uptime-bar-wrap" id="bar-${def.id.replace(/\s+/g,'-')}"></div>
+      <div class="exec-status-label ${meta.cls}">${meta.label}</div>
+    `;
+
+    // build bar segments
+    const barWrap = row.querySelector('.uptime-bar-wrap');
+    (data.history || []).forEach(seg => {
+      const s = document.createElement('div');
+      s.className = 'uptime-segment';
+      if (seg === 'down')   s.classList.add('down');
+      if (seg === 'verify') s.classList.add('verify');
+      if (seg === 'shut')   s.classList.add('shut');
+      barWrap.appendChild(s);
+    });
+
+    return row;
+  }
+
+  function renderGroup(catId, defs) {
+    const list = document.getElementById('list-' + catId);
+    list.innerHTML = '';
+    defs.forEach(def => list.appendChild(renderExecRow(def)));
+
+    const st   = groupStatus(defs.map(d => d.id));
+    const m    = STATUS_META[st];
+    const chip = document.getElementById('chip-' + catId);
+    chip.className = `status-chip ${m.chip}`;
+    chip.innerHTML = `<span class="chip-dot${st === 'verifying' ? ' pulse' : ''}"></span><span>${m.chipLabel}</span>`;
+  }
+
+  function renderBanner() {
+    const all = [
+      ...EXECUTOR_DEFS.windows,
+      ...EXECUTOR_DEFS.mac,
+      ...EXECUTOR_DEFS.dual
+    ].map(d => (execState[d.id] || {}).status || DEFAULT_STATUS);
+
+    const offline   = all.filter(s => s === 'offline').length;
+    const verifying = all.filter(s => s === 'verifying').length;
+    const shutdown  = all.filter(s => s === 'shutdown').length;
+    const banner    = document.getElementById('global-banner');
+    const text      = document.getElementById('banner-text');
+
+    if (offline > 0) {
+      banner.className = 'status-banner outage';
+      banner.querySelector('svg').innerHTML = '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v4M8 11.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+      text.textContent = `${offline} executor${offline > 1 ? 's' : ''} offline`;
+    } else if (verifying > 0) {
+      banner.className = 'status-banner degraded';
+      banner.querySelector('svg').innerHTML = '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v4M8 11.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+      text.textContent = `${verifying} executor${verifying > 1 ? 's' : ''} verifying`;
+    } else if (shutdown > 0) {
+      banner.className = 'status-banner degraded';
+      text.textContent = `${shutdown} executor${shutdown > 1 ? 's' : ''} shut down`;
+    } else {
+      banner.className = 'status-banner all-good';
+      banner.querySelector('svg').innerHTML = '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      text.textContent = 'All executors operational';
+    }
+  }
+
+  function renderAll() {
+    renderGroup('windows', EXECUTOR_DEFS.windows);
+    renderGroup('mac',     EXECUTOR_DEFS.mac);
+    renderGroup('dual',    EXECUTOR_DEFS.dual);
+    renderBanner();
+  }
+
+  // ─── INCIDENTS ────────────────────────────────────────────────────────────
+  function renderIncidents(incidents) {
+    const el = document.getElementById('incidents-list');
+    el.innerHTML = '';
+
+    if (!incidents || incidents.length === 0) {
+      el.innerHTML = '<div class="empty-state">No incidents recorded.</div>';
+      return;
+    }
+
+    const byDate = {};
+    incidents.forEach(inc => {
+      const d = new Date(inc.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(inc);
+    });
+
+    Object.entries(byDate).forEach(([date, list]) => {
+      const dl = document.createElement('div');
+      dl.className = 'incident-date';
+      dl.textContent = date;
+      el.appendChild(dl);
+
+      list.forEach(inc => {
+        const card = document.createElement('div');
+        card.className = 'incident-card';
+
+        const hdr = document.createElement('div');
+        hdr.className = 'incident-header open';
+        hdr.innerHTML = `
+          <div class="incident-title">${inc.title}</div>
+          <div class="status-chip chip-red" style="font-size:11px;padding:2px 9px;">${inc.type || 'Downtime'}</div>`;
+
+        const body = document.createElement('div');
+        body.className = 'incident-body';
+
+        (inc.entries || []).forEach(entry => {
+          const row = document.createElement('div');
+          row.className = 'incident-entry';
+          row.innerHTML = `
+            <div class="tl-dot" style="margin-top:3px;flex-shrink:0;"></div>
+            <div>
+              <div class="incident-meta"><strong>${entry.label}</strong>${entry.timestamp}</div>
+              <div class="incident-text">${entry.text}</div>
+            </div>`;
+          body.appendChild(row);
+        });
+
+        hdr.onclick = () => {
+          const isOpen = body.style.display !== 'none';
+          body.style.display = isOpen ? 'none' : '';
+          hdr.classList.toggle('open', !isOpen);
+        };
+
+        card.appendChild(hdr);
+        card.appendChild(body);
+        el.appendChild(card);
+      });
+    });
+  }
+
+  // ─── ROBLOX VERSION ───────────────────────────────────────────────────────
+  function renderRobloxCard(data) {
+    if (!data) return;
+    document.getElementById('rbx-version-display').textContent = data.currentVersion || '—';
+    const t = data.checkedAt || data.updatedAt;
+    document.getElementById('rbx-checked-time').textContent = t
+      ? 'Checked ' + new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    const badge  = document.getElementById('rbx-badge');
+    const banner = document.getElementById('roblox-banner');
+
+    if (data.updateDetected && data.currentVersion !== dismissedVersion) {
+      badge.className = 'roblox-badge updated';
+      badge.textContent = 'Updated';
+
+      // populate banner detail grid
+      const grid = document.getElementById('rbx-detail-grid');
+      grid.innerHTML = '';
+      const fields = [
+        ['New Version',       data.currentVersion  || '—'],
+        ['Client Upload',     data.currentUpload   || '—'],
+        ['Bootstrapper',      data.bootstrapper    || '—'],
+        ['Previous Version',  data.previousVersion || '—'],
+        ['Previous Upload',   data.previousUpload  || '—'],
+      ];
+      fields.forEach(([label, value]) => {
+        grid.innerHTML += `
+          <div class="rbx-field">
+            <div class="rbx-field-label">${label}</div>
+            <div class="rbx-field-value">${value}</div>
+          </div>`;
+      });
+      banner.classList.add('visible');
+    } else {
+      badge.className = 'roblox-badge live';
+      badge.textContent = 'Live';
+      if (data.updateDetected && data.currentVersion === dismissedVersion) {
+        banner.classList.remove('visible');
+      }
+    }
+  }
+
+  window.dismissRobloxBanner = function() {
+    if (robloxData) dismissedVersion = robloxData.currentVersion;
+    document.getElementById('roblox-banner').classList.remove('visible');
+    const badge = document.getElementById('rbx-badge');
+    badge.className = 'roblox-badge live';
+    badge.textContent = 'Live';
+  };
+
+  // ─── POLL ROBLOX API ──────────────────────────────────────────────────────
+  async function pollRoblox() {
+    try {
+      // We use a CORS proxy since clientsettings.roblox.com blocks browsers
+      const url = 'https://corsproxy.io/?https://clientsettings.roblox.com/v2/client-version/WindowsPlayer';
+      const res  = await fetch(url);
+      if (!res.ok) return;
+      const json = await res.json();
+      // json: { version, clientVersionUpload, bootstrapperVersion, ... }
+
+      const robloxRef = doc(db, 'roblox', 'version');
+      const snap      = await getDoc(robloxRef);
+      const prev      = snap.exists() ? snap.data() : null;
+
+      const newVersion = json.version || '';
+      const isUpdate   = prev && prev.currentVersion && prev.currentVersion !== newVersion;
+
+      await setDoc(robloxRef, {
+        currentVersion:   newVersion,
+        currentUpload:    json.clientVersionUpload || '',
+        bootstrapper:     json.bootstrapperVersion  || '',
+        previousVersion:  prev ? (prev.currentVersion || '') : '',
+        previousUpload:   prev ? (prev.currentUpload  || '') : '',
+        updateDetected:   isUpdate ? true : (prev ? !!prev.updateDetected : false),
+        updatedAt:        isUpdate ? Date.now() : (prev ? prev.updatedAt : Date.now()),
+        checkedAt:        Date.now(),
+      }, { merge: true });
+
+    } catch(e) {
+      console.warn('Roblox poll failed:', e.message);
+    }
+  }
+
+  // ─── NAV ──────────────────────────────────────────────────────────────────
+  window.showSection = function(id) {
+    ['status','maintenance','incidents'].forEach(s => {
+      document.getElementById('panel-' + s).classList.toggle('active', s === id);
+    });
+    document.querySelectorAll('.nav-link').forEach((btn, i) => {
+      btn.classList.toggle('active', ['status','maintenance','incidents'][i] === id);
+    });
+  };
+
+  window.toggleGroup = function(id) {
+    const list   = document.getElementById('list-' + id);
+    const hdr    = document.getElementById('hdr-' + id);
+    const chev   = hdr.querySelector('.chevron');
+    const isOpen = list.style.display !== 'none';
+    list.style.display = isOpen ? 'none' : 'block';
+    chev.classList.toggle('open', !isOpen);
+    hdr.classList.toggle('expanded', !isOpen);
+  };
+
+  // ─── INIT ─────────────────────────────────────────────────────────────────
+  async function init() {
+    document.getElementById('loading-state').style.display = 'flex';
+
+    await seedExecutors();
+
+    // Realtime listener on executors collection
+    const execColRef = collection(db, 'executors');
+    onSnapshot(execColRef, snapshot => {
+      snapshot.forEach(d => { execState[d.id] = d.data(); });
+      renderAll();
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('panel-status').classList.add('active');
+    });
+
+    // Realtime listener on roblox version doc
+    const robloxRef = doc(db, 'roblox', 'version');
+    onSnapshot(robloxRef, snap => {
+      robloxData = snap.exists() ? snap.data() : null;
+      renderRobloxCard(robloxData);
+    });
+
+    // Realtime listener on incidents collection
+    const incColRef = collection(db, 'incidents');
+    onSnapshot(incColRef, snapshot => {
+      const incidents = [];
+      snapshot.forEach(d => incidents.push({ id: d.id, ...d.data() }));
+      incidents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      renderIncidents(incidents);
+    });
+
+    // Poll Roblox API immediately then every 5 minutes
+    await pollRoblox();
+    setInterval(pollRoblox, 5 * 60 * 1000);
+  }
+
+  init().catch(console.error);
+</script>
+</body>
+</html>
