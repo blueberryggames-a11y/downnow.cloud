@@ -74,13 +74,9 @@
       font-weight: 600; font-size: 15px; letter-spacing: -0.02em;
       color: var(--text);
     }
-    .logo-mark {
+    .logo-img {
       width: 28px; height: 28px;
-      background: var(--surface);
-      border: 1px solid var(--border-hi);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      object-fit: contain; flex-shrink: 0;
     }
     .nav-links { display: flex; align-items: center; gap: 2px; }
     .nav-link {
@@ -397,12 +393,7 @@
 <nav>
   <div class="nav-inner">
     <a class="logo" href="/">
-      <div class="logo-mark">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.5 6.5C12.5 4.29 10.71 2.5 8.5 2.5C6.79 2.5 5.33 3.58 4.74 5.09C4.33 4.89 3.86 4.79 3.37 4.83C2.04 4.94 1 6.07 1 7.4C1 8.84 2.16 10 3.6 10H12C13.1 10 14 9.1 14 8C14 7.17 13.5 6.46 12.78 6.14Z" fill="#a78bfa" opacity="0.45"/>
-          <path d="M8 7L6.5 10H8.25L7.5 13L10 9H8.5L9.5 7H8Z" fill="#a78bfa"/>
-        </svg>
-      </div>
+      <img class="logo-img" src="https://raw.githubusercontent.com/blueberryggames-a11y/downnow.cloud/refs/heads/main/whitelogo.ico" alt="downnow.cloud logo" />
       downnow.cloud
     </a>
     <div class="nav-links">
