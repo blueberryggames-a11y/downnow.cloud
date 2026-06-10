@@ -411,7 +411,7 @@
   <!-- Loading state -->
   <div id="loading-state" class="loading-state">
     <div class="spin"></div>
-    Connecting to Firebase...
+    Loading...
   </div>
 
   <!-- ══ STATUS PANEL ══ -->
@@ -521,7 +521,7 @@
   <!-- ══ MAINTENANCE PANEL ══ -->
   <div id="panel-maintenance" class="section-panel">
     <div class="section-title">Maintenance</div>
-    <div class="empty-state">No scheduled maintenance windows.</div>
+    <div id="maintenance-list"><div class="empty-state">No scheduled maintenance windows.</div></div>
   </div>
 
   <!-- ══ INCIDENTS PANEL ══ -->
@@ -587,7 +587,11 @@ Document:  version
     <div class="code-label">Bot slash commands</div>
     <div class="code-block">/force &lt;red|yellow|green&gt;   — force all channels to one color
 /executor &lt;name&gt; &lt;status&gt;   — override one executor manually
-/scan                        — trigger an immediate scan now</div>
+/scan                        — trigger an immediate scan now
+/incident                    — create or update an incident
+/maintenance                 — schedule a maintenance window
+/end &lt;Incident|Maintenance&gt; &lt;id&gt;  — resolve/complete with captcha confirm
+/adminrole &lt;role&gt;            — set the admin role (server owner only)</div>
   </div>
 </div>
 
@@ -855,6 +859,65 @@ Document:  version
     });
   }
 
+  // ─── MAINTENANCE ──────────────────────────────────────────────────────────
+  function renderMaintenance(items) {
+    const el = document.getElementById('maintenance-list');
+    el.innerHTML = '';
+
+    const active   = items.filter(m => !m.resolved);
+    const resolved = items.filter(m =>  m.resolved);
+    const display  = [...active, ...resolved];
+
+    if (display.length === 0) {
+      el.innerHTML = '<div class="empty-state">No scheduled maintenance windows.</div>';
+      return;
+    }
+
+    display.forEach(m => {
+      const isActive    = !m.resolved;
+      const chipClass   = isActive ? 'chip-purple' : 'chip-green';
+      const chipLabel   = m.status === 'completed' ? '✅ Completed'
+                        : m.status === 'in-progress' ? '🔧 In Progress'
+                        : '🕐 Scheduled';
+      const startStr    = m.scheduledStart || '—';
+      const endStr      = m.scheduledEnd   || '—';
+      const affectedStr = Array.isArray(m.affected) ? m.affected.join(', ') : (m.affected || '—');
+
+      const card = document.createElement('div');
+      card.className = 'incident-card';
+      card.style.marginBottom = '8px';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'incident-header open';
+      hdr.innerHTML = `
+        <div class="incident-title">🔧 ${m.title || 'Maintenance'}</div>
+        <div class="status-chip ${chipClass}" style="font-size:11px;padding:2px 9px;">${chipLabel}</div>`;
+
+      const body = document.createElement('div');
+      body.style.padding = '0 20px 14px';
+
+      body.innerHTML = `
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.8;">
+          <div><span style="color:var(--dim);font-weight:600;">Description: </span>${m.description || '—'}</div>
+          <div><span style="color:var(--dim);font-weight:600;">Affected: </span>${affectedStr}</div>
+          <div><span style="color:var(--dim);font-weight:600;">Window: </span>${startStr} → ${endStr}</div>
+          <div><span style="color:var(--dim);font-weight:600;">Scheduled by: </span>${m.createdBy || '—'}</div>
+          ${m.resolved && m.resolvedAt ? `<div><span style="color:var(--dim);font-weight:600;">Completed at: </span>${new Date(m.resolvedAt).toLocaleString()}</div>` : ''}
+          <div style="margin-top:4px;font-size:10px;color:var(--dim);">ID: ${m.id || '—'}</div>
+        </div>`;
+
+      hdr.onclick = () => {
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : '';
+        hdr.classList.toggle('open', !isOpen);
+      };
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      el.appendChild(card);
+    });
+  }
+
   // ─── ROBLOX VERSION ───────────────────────────────────────────────────────
   function renderRobloxCard(data) {
     if (!data) return;
@@ -959,6 +1022,18 @@ Document:  version
       snapshot.forEach(d => incidents.push({ id: d.id, ...d.data() }));
       incidents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       renderIncidents(incidents);
+    });
+
+    // Realtime listener: maintenances collection
+    onSnapshot(collection(db, 'maintenances'), snapshot => {
+      const items = [];
+      snapshot.forEach(d => items.push({ id: d.id, ...d.data() }));
+      // Active first, then sort by scheduled start descending
+      items.sort((a, b) => {
+        if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+      renderMaintenance(items);
     });
 
     // Refresh "X minutes ago" label every minute without needing a Firestore round-trip
